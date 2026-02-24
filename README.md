@@ -71,13 +71,6 @@ Date,SKU,Sales
 
 Column names are normalised automatically (e.g. `qty_sold` → `Sales`).
 
-## Roadmap
-
-- [ ] PDF report export (purchase orders)
-- [ ] Shopify / WooCommerce API integration
-- [ ] Multi-location inventory support
-- [ ] Supabase session history
-
 ## Author
 
 **Bhargav Hari** · [GitHub](https://github.com/bhargavhari)
