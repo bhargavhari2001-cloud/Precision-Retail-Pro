@@ -8,6 +8,12 @@ const statusBadge: Record<string, string> = {
   Healthy:          "bg-cyan-500/10 text-cyan-300 border border-cyan-500/50 shadow-[0_0_8px_rgba(0,255,255,0.15)]",
 };
 
+const abcBadge: Record<string, string> = {
+  A: "bg-emerald-500/10 text-emerald-300 border border-emerald-500/50 shadow-[0_0_8px_rgba(16,185,129,0.2)]",
+  B: "bg-cyan-500/10 text-cyan-300 border border-cyan-500/50 shadow-[0_0_8px_rgba(0,255,255,0.15)]",
+  C: "bg-zinc-700/20 text-zinc-400 border border-zinc-600/50",
+};
+
 const dsiColor = (dsi: number) => {
   if (dsi < 14) return "text-red-400 drop-shadow-[0_0_4px_rgba(248,113,113,0.6)]";
   if (dsi > 90) return "text-amber-400 drop-shadow-[0_0_4px_rgba(251,191,36,0.6)]";
@@ -18,7 +24,7 @@ interface Props {
   metrics: InventoryMetric[];
 }
 
-const HEADERS = ["SKU", "Stock", "Cost", "Price", "Avg Demand/day", "DSI", "Status", "Cash Trapped", "Method"];
+const HEADERS = ["SKU", "ABC", "Stock", "Cost", "Price", "Avg Demand/day", "DSI", "Status", "Cash Trapped", "Method"];
 
 export default function InventoryTable({ metrics }: Props) {
   return (
@@ -42,6 +48,15 @@ export default function InventoryTable({ metrics }: Props) {
               }`}
             >
               <td className="px-4 py-3 font-mono font-bold text-cyan-300">{m.SKU}</td>
+              <td className="px-4 py-3">
+                {m.ABC_Class ? (
+                  <span className={`rounded px-2 py-0.5 font-mono text-[10px] font-bold ${abcBadge[m.ABC_Class]}`}>
+                    {m.ABC_Class}
+                  </span>
+                ) : (
+                  <span className="font-mono text-zinc-700">—</span>
+                )}
+              </td>
               <td className="px-4 py-3 font-mono text-zinc-300">{m.Current_Stock.toLocaleString()}</td>
               <td className="px-4 py-3 font-mono text-zinc-400">${m.Cost.toFixed(2)}</td>
               <td className="px-4 py-3 font-mono text-zinc-400">${m.Price.toFixed(2)}</td>

@@ -22,7 +22,7 @@ export default function ForecastingPage() {
     if (!analysisResult) {
       const saved = storage.loadAnalysis();
       if (saved) setAnalysisResult(saved);
-      else router.push("/");
+      else router.push("/upload");
     }
   }, [analysisResult, setAnalysisResult, router]);
 

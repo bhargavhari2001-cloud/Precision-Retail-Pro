@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
 
     if (!body.inventory?.length || !body.sales?.length) {
       return NextResponse.json<AnalyzeResponse>(
-        { metrics: [], summary: { totalInventoryValue: 0, totalCashTrapped: 0, urgentReorderCount: 0, deadStockCount: 0, healthyCount: 0, skuCount: 0 }, error: "Both inventory and sales data are required." },
+        { metrics: [], summary: { totalInventoryValue: 0, totalCashTrapped: 0, urgentReorderCount: 0, deadStockCount: 0, healthyCount: 0, skuCount: 0, abc: { A: 0, B: 0, C: 0 } }, error: "Both inventory and sales data are required." },
         { status: 400 }
       );
     }
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     console.error("[analyze] error:", err);
     return NextResponse.json<AnalyzeResponse>(
-      { metrics: [], summary: { totalInventoryValue: 0, totalCashTrapped: 0, urgentReorderCount: 0, deadStockCount: 0, healthyCount: 0, skuCount: 0 }, error: "Internal error during analysis." },
+      { metrics: [], summary: { totalInventoryValue: 0, totalCashTrapped: 0, urgentReorderCount: 0, deadStockCount: 0, healthyCount: 0, skuCount: 0, abc: { A: 0, B: 0, C: 0 } }, error: "Internal error during analysis." },
       { status: 500 }
     );
   }

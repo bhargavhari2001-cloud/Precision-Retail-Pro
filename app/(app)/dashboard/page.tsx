@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { DollarSign, AlertTriangle, PackageX, Package, TrendingUp } from "lucide-react";
+import { DollarSign, AlertTriangle, PackageX, Package, TrendingUp, Layers } from "lucide-react";
 import { useStore } from "@/lib/store";
 import MetricCard from "@/components/MetricCard";
 import InventoryTable from "@/components/InventoryTable";
@@ -24,7 +24,7 @@ export default function DashboardPage() {
     if (!analysisResult) {
       const saved = storage.loadAnalysis();
       if (saved) setAnalysisResult(saved);
-      else router.push("/");
+      else router.push("/upload");
     }
   }, [analysisResult, setAnalysisResult, router]);
 
@@ -39,6 +39,21 @@ export default function DashboardPage() {
   const { summary, metrics } = analysisResult;
   const urgentItems = metrics.filter((m) => m.Status === "Urgent Reorder");
   const deadItems = metrics.filter((m) => m.Status === "Dead Stock");
+
+  const totalRevContribution = metrics.reduce((s, m) => s + (m.Revenue_Contribution ?? 0), 0);
+  const abcCards = [
+    { cls: "A" as const, border: "border-emerald-500/40", text: "text-emerald-300", glow: "shadow-[0_0_16px_rgba(16,185,129,0.10)]", desc: "Top 80% of revenue · tight control" },
+    { cls: "B" as const, border: "border-cyan-500/40", text: "text-cyan-300", glow: "shadow-[0_0_16px_rgba(0,255,255,0.08)]", desc: "Next 15% of revenue · standard control" },
+    { cls: "C" as const, border: "border-zinc-600/40", text: "text-zinc-400", glow: "", desc: "Bottom 5% of revenue · minimal control" },
+  ];
+  const abcStat = (cls: "A" | "B" | "C") => {
+    const items = metrics.filter((m) => m.ABC_Class === cls);
+    const rev = items.reduce((s, m) => s + (m.Revenue_Contribution ?? 0), 0);
+    return {
+      count: items.length,
+      revPct: totalRevContribution > 0 ? Math.round((rev / totalRevContribution) * 100) : 0,
+    };
+  };
 
   return (
     <div className="min-h-screen p-8">
@@ -85,6 +100,31 @@ export default function DashboardPage() {
           icon={TrendingUp}
           variant="green"
         />
+      </div>
+
+      {/* ABC classification */}
+      <div className="mb-8">
+        <div className="mb-3 flex items-center gap-3">
+          <Layers size={14} className="text-emerald-400" />
+          <p className="font-mono text-xs uppercase tracking-widest text-emerald-500">
+            ABC Classification — Pareto by revenue
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          {abcCards.map((c) => {
+            const { count, revPct } = abcStat(c.cls);
+            return (
+              <div key={c.cls} className={`rounded-lg border ${c.border} bg-black/60 p-5 ${c.glow}`}>
+                <div className="flex items-baseline justify-between">
+                  <span className={`font-mono text-3xl font-bold ${c.text}`}>{c.cls}</span>
+                  <span className={`font-mono text-sm ${c.text}`}>{revPct}% rev</span>
+                </div>
+                <p className={`mt-1 font-mono text-xs ${c.text} opacity-80`}>{count} SKUs</p>
+                <p className="mt-2 font-mono text-[10px] text-zinc-600">{c.desc}</p>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Action panels */}

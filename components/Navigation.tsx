@@ -6,7 +6,7 @@ import { BarChart2, Package, TrendingUp, Upload, Trash2, Zap } from "lucide-reac
 import { useStore } from "@/lib/store";
 
 const NAV = [
-  { href: "/", label: "Upload Data", icon: Upload },
+  { href: "/upload", label: "Upload Data", icon: Upload },
   { href: "/dashboard", label: "Dashboard", icon: BarChart2 },
   { href: "/inventory", label: "Inventory Grid", icon: Package },
   { href: "/forecasting", label: "AI Forecast", icon: TrendingUp },
@@ -23,13 +23,13 @@ export default function Navigation() {
 
       {/* Logo */}
       <div className="mb-8 px-3">
-        <div className="flex items-center gap-2">
-          <Zap size={16} className="text-cyan-400 drop-shadow-[0_0_6px_rgba(0,255,255,0.8)]" />
-          <p className="font-mono text-sm font-bold uppercase tracking-[0.15em] text-cyan-300">
-            Precision Retail
+        <Link href="/" className="flex items-start gap-2">
+          <Zap size={18} className="mt-0.5 shrink-0 text-cyan-400 drop-shadow-[0_0_6px_rgba(34,229,232,0.8)]" />
+          <p className="font-mono text-sm font-extrabold uppercase leading-[1.15] tracking-[0.12em] text-cyan-300">
+            Precision<br />Retail
           </p>
-        </div>
-        <p className="mt-0.5 font-mono text-[9px] uppercase tracking-[0.2em] text-cyan-600">
+        </Link>
+        <p className="mt-1.5 pl-7 font-mono text-[9px] uppercase tracking-[0.2em] text-cyan-600">
           AI Inventory Intelligence
         </p>
         <div className="mt-3 h-px bg-gradient-to-r from-cyan-500/40 to-transparent" />
