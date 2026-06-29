@@ -27,6 +27,8 @@ export interface InventoryMetric {
   Status: StockStatus;
   Cash_Trapped: number;
   Forecast_Method: ForecastMethod;
+  ABC_Class?: "A" | "B" | "C";
+  Revenue_Contribution?: number;
   Forecast_Values?: number[];
   AI_Insight?: string;
 }
@@ -61,6 +63,7 @@ export interface AnalyzeResponse {
     deadStockCount: number;
     healthyCount: number;
     skuCount: number;
+    abc: { A: number; B: number; C: number };
   };
   error?: string;
 }

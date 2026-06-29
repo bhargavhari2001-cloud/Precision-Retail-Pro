@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Search, Filter, Package } from "lucide-react";
 import { useStore } from "@/lib/store";
 import InventoryTable from "@/components/InventoryTable";
+import ReorderPlan from "@/components/ReorderPlan";
 import { storage } from "@/lib/storage";
 import type { InventoryMetric, StockStatus } from "@/types";
 
@@ -34,7 +35,7 @@ export default function InventoryPage() {
     if (!analysisResult) {
       const saved = storage.loadAnalysis();
       if (saved) setAnalysisResult(saved);
-      else router.push("/");
+      else router.push("/upload");
     }
   }, [analysisResult, setAnalysisResult, router]);
 
@@ -109,6 +110,8 @@ export default function InventoryPage() {
           Showing {filtered.length} of {analysisResult.metrics.length} SKUs
         </p>
       </div>
+
+      <ReorderPlan metrics={analysisResult.metrics} />
 
       {/* Table */}
       {filtered.length > 0 ? (

@@ -41,7 +41,7 @@ export function calculateMetrics(
   inventory: InventoryRow[],
   sales: SalesRow[]
 ): InventoryMetric[] {
-  return inventory.map((row) => {
+  const metrics: InventoryMetric[] = inventory.map((row) => {
     const { avgDailyDemand, method } = movingAverageForecast(sales, row.SKU);
     const dsi = calcDSI(row.Current_Stock, avgDailyDemand);
     const status = calcStatus(dsi);
@@ -56,6 +56,39 @@ export function calculateMetrics(
       Forecast_Method: method,
     };
   });
+
+  assignABC(metrics);
+  return metrics;
+}
+
+// ── ABC (Pareto) classification ───────────────────────────────────────────────
+// Rank SKUs by annualized revenue contribution (price × yearly demand) and split
+// into tiers: A = SKUs making up the top 80% of revenue, B = next 15%, C = bottom
+// 5%. SKUs with no demand have zero revenue and fall to C automatically.
+
+export function assignABC(metrics: InventoryMetric[]): void {
+  for (const m of metrics) {
+    m.Revenue_Contribution = Math.round(m.Price * m.Avg_Daily_Demand * 365 * 100) / 100;
+  }
+
+  const totalRevenue = metrics.reduce((s, m) => s + (m.Revenue_Contribution ?? 0), 0);
+
+  // No revenue signal → everything is C.
+  if (totalRevenue <= 0) {
+    for (const m of metrics) m.ABC_Class = "C";
+    return;
+  }
+
+  const ranked = [...metrics].sort(
+    (a, b) => (b.Revenue_Contribution ?? 0) - (a.Revenue_Contribution ?? 0)
+  );
+
+  let cumulative = 0;
+  for (const m of ranked) {
+    const before = cumulative / totalRevenue; // share accumulated before this SKU
+    cumulative += m.Revenue_Contribution ?? 0;
+    m.ABC_Class = before < 0.8 ? "A" : before < 0.95 ? "B" : "C";
+  }
 }
 
 // ── Summary stats ─────────────────────────────────────────────────────────────
@@ -68,5 +101,10 @@ export function buildSummary(metrics: InventoryMetric[]) {
     deadStockCount: metrics.filter((m) => m.Status === "Dead Stock").length,
     healthyCount: metrics.filter((m) => m.Status === "Healthy").length,
     skuCount: metrics.length,
+    abc: {
+      A: metrics.filter((m) => m.ABC_Class === "A").length,
+      B: metrics.filter((m) => m.ABC_Class === "B").length,
+      C: metrics.filter((m) => m.ABC_Class === "C").length,
+    },
   };
 }
