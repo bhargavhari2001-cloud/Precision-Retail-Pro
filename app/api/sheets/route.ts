@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkRateLimit, getClientIP, rateLimitError } from "@/lib/rateLimit";
 
 /**
  * GET /api/sheets?spreadsheetId=<ID>&sheetName=<name>
@@ -9,12 +10,20 @@ import { NextRequest, NextResponse } from "next/server";
  * The spreadsheet must be shared with "Anyone with the link – Viewer".
  */
 export async function GET(req: NextRequest) {
+  const rl = checkRateLimit(getClientIP(req), 15);
+  if (!rl.allowed) return rateLimitError(rl.resetAt);
+
   const { searchParams } = new URL(req.url);
   const spreadsheetId = searchParams.get("spreadsheetId");
-  const sheetName = searchParams.get("sheetName") || "Sheet1";
+  const sheetName = (searchParams.get("sheetName") || "Sheet1").slice(0, 100);
 
   if (!spreadsheetId) {
     return NextResponse.json({ error: "spreadsheetId is required" }, { status: 400 });
+  }
+  // Google spreadsheet IDs are URL-safe tokens; rejecting anything else prevents
+  // path injection into the googleapis request URL built below.
+  if (!/^[A-Za-z0-9_-]{10,120}$/.test(spreadsheetId)) {
+    return NextResponse.json({ error: "Invalid spreadsheetId format." }, { status: 400 });
   }
 
   const apiKey = process.env.GOOGLE_API_KEY;

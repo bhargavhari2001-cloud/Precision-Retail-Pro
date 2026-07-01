@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkRateLimit, getClientIP, rateLimitError } from "@/lib/rateLimit";
 import { calculateMetrics, buildSummary } from "@/lib/metrics";
 import type { AnalyzeRequest, AnalyzeResponse } from "@/types";
 
 export async function POST(req: NextRequest) {
   try {
+    const rl = checkRateLimit(getClientIP(req), 20);
+    if (!rl.allowed) return rateLimitError(rl.resetAt);
+
     const body: AnalyzeRequest = await req.json();
 
     if (!body.inventory?.length || !body.sales?.length) {
