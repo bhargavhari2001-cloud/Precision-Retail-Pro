@@ -1,19 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
+import { checkRateLimit, getClientIP, rateLimitError } from "@/lib/rateLimit";
+
+/** Escape user-supplied strings before interpolating into email HTML. */
+function esc(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
 
 /**
  * POST /api/alerts — low-stock email digest via Resend (free tier: 3,000/mo).
- * Body: { items: { SKU: string; currentStock: number; reorderPoint: number }[], to?: string }
+ * Body: { items: { SKU: string; currentStock: number; reorderPoint: number }[] }
+ * The recipient is ALWAYS server-configured (ALERT_TO_EMAIL) — accepting a client-supplied
+ * `to` would let anyone use this endpoint as an open email relay.
  * No-op (200, sent:false) when RESEND_API_KEY is not configured.
  * Plain fetch — no SDK dependency.
  */
 export async function POST(request: NextRequest) {
   try {
+    const rl = checkRateLimit(getClientIP(request), 5);
+    if (!rl.allowed) return rateLimitError(rl.resetAt);
+
     const apiKey = process.env.RESEND_API_KEY;
     const from = process.env.ALERT_FROM_EMAIL || "alerts@resend.dev";
     const body = await request.json();
-    const items: { SKU: string; currentStock: number; reorderPoint: number }[] =
-      Array.isArray(body?.items) ? body.items.slice(0, 100) : [];
-    const to = typeof body?.to === "string" ? body.to : process.env.ALERT_TO_EMAIL;
+    const items: { SKU: string; currentStock: number; reorderPoint: number }[] = (
+      Array.isArray(body?.items) ? body.items.slice(0, 100) : []
+    ).filter(
+      (i: unknown): i is { SKU: string; currentStock: number; reorderPoint: number } => {
+        const o = i as Record<string, unknown>;
+        return (
+          typeof o?.SKU === "string" && o.SKU.length <= 100 &&
+          typeof o?.currentStock === "number" && typeof o?.reorderPoint === "number"
+        );
+      }
+    );
+    const to = process.env.ALERT_TO_EMAIL;
 
     if (!items.length) {
       return NextResponse.json({ error: "No items provided" }, { status: 400 });
@@ -26,7 +46,7 @@ export async function POST(request: NextRequest) {
     }
 
     const rows = items
-      .map((i) => `<tr><td>${i.SKU}</td><td align="right">${i.currentStock}</td><td align="right">${i.reorderPoint}</td></tr>`)
+      .map((i) => `<tr><td>${esc(i.SKU)}</td><td align="right">${i.currentStock}</td><td align="right">${i.reorderPoint}</td></tr>`)
       .join("");
     const html = `<h2>Low-stock alert — ${items.length} SKU(s) at or below reorder point</h2>
 <table border="1" cellpadding="6" cellspacing="0">

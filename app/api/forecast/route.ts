@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
+import { checkRateLimit, getClientIP, rateLimitError } from "@/lib/rateLimit";
 import { buildForecastPrompt } from "@/lib/prompts";
 import { movingAverageForecast } from "@/lib/metrics";
 import type { ForecastRequest, ForecastResponse, ForecastPoint } from "@/types";
@@ -25,8 +26,23 @@ async function callClaude(prompt: string): Promise<string> {
 
 export async function POST(req: NextRequest) {
   try {
+    const rl = checkRateLimit(getClientIP(req), 10);
+    if (!rl.allowed) return rateLimitError(rl.resetAt);
+
     const body: ForecastRequest = await req.json();
     const { sku, salesHistory, currentStock } = body;
+
+    // Cap input sizes: this route can call a paid LLM, so an unbounded salesHistory
+    // array would let anyone run up token costs once ANTHROPIC_API_KEY is configured.
+    if (typeof sku === "string" && sku.length > 100) {
+      return NextResponse.json({ error: "SKU too long (max 100 chars)." }, { status: 400 });
+    }
+    if (Array.isArray(salesHistory) && salesHistory.length > 5000) {
+      return NextResponse.json(
+        { error: "salesHistory too large (max 5,000 rows per request)." },
+        { status: 400 }
+      );
+    }
 
     if (!sku || !salesHistory?.length) {
       return NextResponse.json<ForecastResponse>(
