@@ -45,11 +45,24 @@ export async function GET(req: NextRequest) {
   }
 
   if (!sheetsRes.ok) {
-    const errBody = await sheetsRes.json().catch(() => ({}));
+    // Log the real upstream error server-side only. Never echo Google's raw
+    // message to the client — it can leak project/quota details and the exact
+    // upstream URL. Return a generic, status-mapped message instead.
+    const upstream = await sheetsRes.text().catch(() => "");
+    console.error(`[sheets] upstream ${sheetsRes.status}:`, upstream.slice(0, 500));
+
+    const status = sheetsRes.status;
     const message =
-      (errBody as { error?: { message?: string } }).error?.message ||
-      `Google Sheets API error (${sheetsRes.status})`;
-    return NextResponse.json({ error: message }, { status: sheetsRes.status });
+      status === 403
+        ? "This spreadsheet is not shared publicly (set it to 'Anyone with the link – Viewer')."
+        : status === 404
+        ? "Spreadsheet or tab not found."
+        : status === 429
+        ? "Too many requests to the data provider. Please try again shortly."
+        : status === 400
+        ? "Invalid spreadsheet request."
+        : "Could not fetch the Google Sheet.";
+    return NextResponse.json({ error: message }, { status: status >= 500 ? 502 : status });
   }
 
   const body = await sheetsRes.json() as { values?: string[][] };

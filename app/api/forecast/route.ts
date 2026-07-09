@@ -103,7 +103,8 @@ export async function POST(req: NextRequest) {
           points,
           method,
           avgDailyDemand,
-          insight: `Claude error: ${msg}`,
+          insight:
+            "AI forecast is temporarily unavailable — showing a moving-average forecast instead.",
         },
       });
     }
@@ -143,6 +144,8 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (err) {
+    // Log details server-side; return a generic message so internal error
+    // text (stack/library internals) never reaches the client.
     console.error("[forecast] unexpected error:", err);
     return NextResponse.json<ForecastResponse>(
       {
@@ -151,9 +154,9 @@ export async function POST(req: NextRequest) {
           points: [],
           method: "Moving Average",
           avgDailyDemand: 0,
-          insight: `Server error: ${err instanceof Error ? err.message : "Unknown error"}`,
+          insight: "The forecast service encountered an error. Please try again.",
         },
-        error: err instanceof Error ? err.message : "Internal server error.",
+        error: "Internal server error.",
       },
       { status: 500 }
     );
